@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Domain Collector</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .log-console {
+            height: 100px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        .log-info { color: #d4d4d4; }
+        .log-success { color: #4ec9b0; }
+        .log-error { color: #f14c4c; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-8">Domain Collector</h1>
+        
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
+            <div class="bg-white rounded-lg shadow p-4">
+                <h3 class="text-gray-500 text-xs">Всего доменов</h3>
+                <p class="text-xl font-bold" id="total">-</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4">
+                <h3 class="text-gray-500 text-xs">Успешно</h3>
+                <p class="text-xl font-bold text-green-600" id="success">-</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4">
+                <h3 class="text-gray-500 text-xs">Ошибки</h3>
+                <p class="text-xl font-bold text-red-600" id="failed">-</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4">
+                <h3 class="text-gray-500 text-xs">Время запуска</h3>
+                <p class="text-xl font-bold" id="startTime">-</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4">
+                <h3 class="text-gray-500 text-xs">Время работы</h3>
+                <p class="text-xl font-bold" id="runTime">-</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4">
+                <h3 class="text-gray-500 text-xs">Расчетное время</h3>
+                <p class="text-xl font-bold" id="eta">-</p>
+            </div>
+        </div>
+
+        <div class="bg-gray-800 rounded-lg shadow mb-4 p-2">
+            <div class="log-console" id="logConsole">
+                <div class="log-info">Waiting for logs...</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="p-4 border-b flex flex-wrap gap-2 items-center">
+                <select id="statusFilter" class="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Все статусы</option>
+                    <option value="success">Успешно</option>
+                    <option value="failed">Ошибки</option>
+                </select>
+                <select id="searchField" class="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="domain">Домен</option>
+                    <option value="title">Title</option>
+                    <option value="phones">Телефоны</option>
+                    <option value="emails">Email</option>
+                    <option value="address">Адрес</option>
+                    <option value="inn">ИНН</option>
+                    <option value="socialMedia">Соцсети</option>
+                    <option value="status">Статус</option>
+                </select>
+                <input type="text" id="search" placeholder="Поиск..." 
+                       class="flex-1 min-w-[150px] px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button id="searchBtn" class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                    Найти
+                </button>
+                <button id="csvBtn" class="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600">
+                    Скачать CSV
+                </button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Домен</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Контент</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Телефоны</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Адрес</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">ИНН</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Соцсети</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Статус</th>
+                        </tr>
+                    </thead>
+                    <tbody id="domains-list" class="divide-y divide-gray-200">
+                        <tr><td colspan="9" class="px-6 py-4 text-center text-gray-500">Загрузка...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="p-4 border-t flex items-center justify-between">
+                <button id="prevBtn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Назад
+                </button>
+                <span id="pageInfo" class="text-gray-600">Страница 1 из 1</span>
+                <button id="nextBtn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Вперёд
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let limit = 1000;
+        let total = 0;
+        let searchQuery = '';
+        let searchField = 'domain';
+        let statusFilter = '';
+        let startTimeStr = '';
+        let totalDomains = 0;
+        let processedDomains = 0;
+
+        async function loadStats() {
+            try {
+                const resp = await fetch('/api/stats');
+                const stats = await resp.json();
+                document.getElementById('total').textContent = (stats.success || 0) + (stats.failed || 0);
+                document.getElementById('success').textContent = stats.success || 0;
+                document.getElementById('failed').textContent = stats.failed || 0;
+            } catch (e) {
+                console.error('Stats error:', e);
+            }
+        }
+
+        async function loadStartInfo() {
+            try {
+                const resp = await fetch('/api/startinfo');
+                const data = await resp.json();
+                startTimeStr = data.startTime || '';
+                totalDomains = data.totalDomains || 0;
+                processedDomains = data.processedDomains || 0;
+                
+                document.getElementById('startTime').textContent = startTimeStr || '-';
+            } catch (e) {
+                console.error('StartInfo error:', e);
+            }
+        }
+
+        function updateRunTime() {
+            if (!startTimeStr) return;
+            
+            const startTime = new Date(startTimeStr.replace(/(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1T$4:$5:$6'));
+            if (isNaN(startTime.getTime())) return;
+            
+            const now = new Date();
+            const diffMs = now - startTime;
+            const diffSec = Math.floor(diffMs / 1000);
+            
+            const hours = Math.floor(diffSec / 3600);
+            const minutes = Math.floor((diffSec % 3600) / 60);
+            const seconds = diffSec % 60;
+            
+            let runTimeStr = '';
+            if (hours > 0) runTimeStr += hours + 'ч ';
+            if (minutes > 0 || hours > 0) runTimeStr += minutes + 'м ';
+            runTimeStr += seconds + 'с';
+            
+            document.getElementById('runTime').textContent = runTimeStr;
+            
+            if (processedDomains >= 10 && totalDomains > 0) {
+                const avgMsPerDomain = diffMs / processedDomains;
+                const remainingDomains = totalDomains - processedDomains;
+                const remainingMs = avgMsPerDomain * remainingDomains;
+                const remainingSec = Math.floor(remainingMs / 1000);
+                
+                const etaHours = Math.floor(remainingSec / 3600);
+                const etaMinutes = Math.floor((remainingSec % 3600) / 60);
+                
+                let etaStr = '';
+                if (etaHours > 0) etaStr += etaHours + 'ч ';
+                if (etaMinutes > 0 || etaHours > 0) etaStr += etaMinutes + 'м';
+                if (etaStr === '') etaStr = '< 1м';
+                
+                document.getElementById('eta').textContent = etaStr;
+            } else {
+                document.getElementById('eta').textContent = '-';
+            }
+        }
+
+        async function loadDomains() {
+            try {
+                let url = `/api/domains?page=${currentPage}&limit=${limit}&search=${encodeURIComponent(searchQuery)}&searchField=${searchField}`;
+                if (statusFilter) {
+                    url += `&status=${statusFilter}`;
+                }
+                const resp = await fetch(url);
+                const data = await resp.json();
+                const domains = data.data || [];
+                total = data.total || 0;
+                
+                const tbody = document.getElementById('domains-list');
+                
+                if (!domains || domains.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9" class="px-6 py-4 text-center text-gray-500">Нет данных</td></tr>';
+                    updatePagination();
+                    return;
+                }
+
+                tbody.innerHTML = domains.map(d => `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+                            <a href="https://${d.domain}" target="_blank" class="hover:underline">${d.domain}</a>
+                        </td>
+                        <td class="px-3 py-4 text-sm text-gray-500 max-w-xs truncate">${d.title || '-'}</td>
+                        <td class="px-3 py-4 text-sm text-gray-500 max-w-xs truncate" title="${d.text || ''}">${(d.text || '').substring(0, 100)}${(d.text && d.text.length > 100) ? '...' : ''}</td>
+                        <td class="px-3 py-4 text-sm text-gray-500">${d.phones || '-'}</td>
+                        <td class="px-3 py-4 text-sm text-gray-500">${d.emails || '-'}</td>
+                        <td class="px-3 py-4 text-sm text-gray-500 max-w-xs truncate">${d.address || '-'}</td>
+                        <td class="px-3 py-4 text-sm text-gray-500">${d.inn || '-'}</td>
+                        <td class="px-3 py-4 text-sm text-gray-500 max-w-xs truncate">${d.socialMedia || '-'}</td>
+                        <td class="px-3 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs rounded-full ${d.status === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                ${d.status}
+                            </span>
+                        </td>
+                    </tr>
+                `).join('');
+
+                updatePagination();
+            } catch (e) {
+                console.error('Domains error:', e);
+                document.getElementById('domains-list').innerHTML = 
+                    '<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">Ошибка загрузки</td></tr>';
+            }
+        }
+
+        function updatePagination() {
+            const totalPages = Math.ceil(total / limit) || 1;
+            document.getElementById('pageInfo').textContent = `Страница ${currentPage} из ${totalPages}`;
+            document.getElementById('prevBtn').disabled = currentPage <= 1;
+            document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+        }
+
+        function doSearch() {
+            searchQuery = document.getElementById('search').value.trim();
+            searchField = document.getElementById('searchField').value;
+            statusFilter = document.getElementById('statusFilter').value;
+            currentPage = 1;
+            loadDomains();
+        }
+
+        document.getElementById('statusFilter').addEventListener('change', doSearch);
+        document.getElementById('searchBtn').addEventListener('click', doSearch);
+        document.getElementById('search').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') doSearch();
+        });
+
+        document.getElementById('prevBtn').addEventListener('click', function() {
+            if (currentPage > 1) {
+                currentPage--;
+                loadDomains();
+            }
+        });
+
+        document.getElementById('nextBtn').addEventListener('click', function() {
+            const totalPages = Math.ceil(total / limit) || 1;
+            if (currentPage < totalPages) {
+                currentPage++;
+                loadDomains();
+            }
+        });
+
+        function connectLogStream() {
+            const consoleDiv = document.getElementById('logConsole');
+            
+            if (!!window.EventSource) {
+                const source = new EventSource('/api/logs');
+                
+                source.onmessage = function(e) {
+                    try {
+                        const log = JSON.parse(e.data);
+                        const div = document.createElement('div');
+                        div.className = `log-${log.level}`;
+                        div.textContent = `[${log.time}] ${log.message}`;
+                        consoleDiv.appendChild(div);
+                        consoleDiv.scrollTop = consoleDiv.scrollHeight;
+                        
+                        if (consoleDiv.children.length > 100) {
+                            consoleDiv.removeChild(consoleDiv.firstChild);
+                        }
+                    } catch (err) {
+                        console.error('Log parse error:', err);
+                    }
+                };
+
+                source.onerror = function(e) {
+                    console.log('SSE connection lost, reconnecting...');
+                    source.close();
+                    setTimeout(connectLogStream, 5000);
+                };
+            } else {
+                consoleDiv.innerHTML = '<div class="log-error">SSE not supported</div>';
+            }
+        }
+
+        function downloadCSV() {
+            const btn = document.getElementById('csvBtn');
+            btn.textContent = 'Загрузка...';
+            btn.disabled = true;
+
+            let url = '/api/domains?page=1&limit=100000';
+            if (statusFilter) {
+                url += `&status=${statusFilter}`;
+            }
+
+            fetch(url)
+                .then(resp => resp.json())
+                .then(data => {
+                    const domains = data.data || [];
+                    if (domains.length === 0) {
+                        alert('Нет данных для выгрузки');
+                        btn.textContent = 'Скачать CSV';
+                        btn.disabled = false;
+                        return;
+                    }
+
+                    const now = new Date();
+                    const pad = n => n.toString().padStart(2, '0');
+                    const filename = `domains_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.csv`;
+
+                    const headers = ['domain', 'title', 'text', 'phones', 'emails', 'address', 'inn', 'socialMedia', 'status', 'description', 'h1', 'errorMessage'];
+                    const csvContent = [
+                        headers.join(','),
+                        ...domains.map(d => headers.map(h => {
+                            let val = d[h] || '';
+                            if (typeof val === 'string') {
+                                val = val.replace(/"/g, '""');
+                                if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+                                    val = '"' + val + '"';
+                                }
+                            }
+                            return val;
+                        }).join(','))
+                    ].join('\n');
+
+                    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = filename;
+                    link.click();
+                    URL.revokeObjectURL(link.href);
+
+                    btn.textContent = 'Скачать CSV';
+                    btn.disabled = false;
+                })
+                .catch(err => {
+                    console.error('CSV error:', err);
+                    alert('Ошибка при выгрузке CSV');
+                    btn.textContent = 'Скачать CSV';
+                    btn.disabled = false;
+                });
+        }
+
+        document.getElementById('csvBtn').addEventListener('click', downloadCSV);
+
+        loadStats();
+        loadStartInfo();
+        loadDomains();
+        connectLogStream();
+        setInterval(() => { loadStats(); loadStartInfo(); loadDomains(); }, 10000);
+        setInterval(() => { loadStartInfo(); updateRunTime(); }, 1000);
+    </script>
+</body>
+</html>

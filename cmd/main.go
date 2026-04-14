@@ -8,9 +8,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"domain-collector/internal/config"
-	"domain-collector/internal/parser"
-	"domain-collector/internal/storage"
+	"domain-analyzer/internal/config"
+	"domain-analyzer/internal/parser"
+	"domain-analyzer/internal/storage"
 )
 
 func main() {

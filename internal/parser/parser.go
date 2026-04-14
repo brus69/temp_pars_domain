@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"domain-collector/internal/config"
+	"domain-analyzer/internal/config"
 
 	"github.com/PuerkitoBio/goquery"
 )

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"domain-collector/internal/parser"
+	"domain-analyzer/internal/parser"
 
 	_ "github.com/mattn/go-sqlite3"
 )

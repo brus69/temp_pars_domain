@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -42,6 +43,9 @@ func New(cfg *config.Config) *Parser {
 		cfg: cfg,
 		client: &http.Client{
 			Timeout: 30 * time.Second,
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				return http.ErrUseLastResponse
 			},

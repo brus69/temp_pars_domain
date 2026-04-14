@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -52,7 +53,7 @@ func main() {
 		log.Fatalf("Failed to open log file: %v", err)
 	}
 	defer f.Close()
-	log.SetOutput(f)
+	log.SetOutput(io.MultiWriter(os.Stdout, f))
 
 	cfg := &config.Config{
 		Workers: *workers,
@@ -110,11 +111,14 @@ func main() {
 		successCount++
 		storage.GlobalStartInfo.SetProcessed(successCount)
 		msg := fmt.Sprintf("Processed: %s (%s)", result.Domain, result.Status)
+		if result.Status == "failed" && result.ErrorMessage != "" {
+			msg += " - " + result.ErrorMessage
+		}
 		log.Printf(msg)
 		if result.Status == "success" {
 			storage.GlobalLogBuffer.Add("success", msg)
 		} else {
-			storage.GlobalLogBuffer.Add("error", msg+" - "+result.ErrorMessage)
+			storage.GlobalLogBuffer.Add("error", msg)
 		}
 	}
 
